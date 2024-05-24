@@ -1,0 +1,7 @@
+#**********************************************************
+# Ignores for 'repo_labdsp_elo314_utfsm'
+
+*/build/Debug
+*/Debug
+*/doxygen
+DSP_BSL/lib/*.lib
