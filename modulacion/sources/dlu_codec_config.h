@@ -53,7 +53,7 @@ extern "C" {
  * ADC_GAIN_48DB
  * ADC_GAIN_51DB
  */
-#define CODEC_ADC_GAIN      ADC_GAIN_0DB
+#define CODEC_ADC_GAIN      ADC_GAIN_18DB
 
 /*
  * Atenuación de salida del CODEC:

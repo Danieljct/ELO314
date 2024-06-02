@@ -22,9 +22,9 @@ int8_t sign(float x);
 **      MODULE PREPROCESSOR CONSTANTS
 ******************************************************************************/
 #define damp 0.05   //ancho del pasabanda
-#define fmax 3000
+#define fmax 2500
 #define fmin 100
-#define Fw 1000     //frecuencia del wah
+#define Fw 1500     //frecuencia del wah
 #define periodo (int)((fmax-fmin)/(Fw/2.0)*CODEC_FS)
 #define Q1 2*damp
 #define PI 3.1415926535897932384626433
@@ -45,7 +45,6 @@ uint8_t indice2 = 0;
 float salidatriangular = 0;
 float F1;
 float yh[2]={0}, yb[2]={0}, yl[2]={0};
-
 float tri;
 /*---------------------------------------------------------------------------*/
 /* ENTRADAS Y SALIDAS DEL AIC CODEC */
@@ -91,7 +90,7 @@ interrupt void interrupt4(void) // Interrupt Service Routine
         DLU_tic();
 
         parametros(floatCodecInputL);
-        indice = (indice + 1) % 92800;  //va periodo pero se cae
+        indice = (indice + 1) % periodo;  //va periodo pero se cae
 
         /* Medición de tiempo de ejecución */
         DLU_toc();
@@ -136,7 +135,7 @@ interrupt void interrupt4(void) // Interrupt Service Routine
 
         // wah wah
         floatCodecOutputL = yb[indice2];
-        floatCodecOutputR = yb[indice2];
+        floatCodecOutputR = floatCodecInputR;
 
         //---------------------------------------------------------------------
         // Escritura en CODEC

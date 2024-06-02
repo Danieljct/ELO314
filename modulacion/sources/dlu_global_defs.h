@@ -14,25 +14,18 @@ extern "C" {
 /*
  * Parámetros de buffer de Graficas
  */
-#define DLU_GRAPH_BUFF_SIZE     48000
+#define DLU_GRAPH_BUFF_SIZE     (2000)
 
 /*
  * Tipo de dato a graficar en Buffer1
  */
-typedef float GraphTypeBuff1_t;
+typedef int16_t GraphTypeBuff1_t;
 
 /*
  * Tipo de dato a graficar en Buffer 2
  */
-typedef float GraphTypeBuff2_t;
+typedef int16_t GraphTypeBuff2_t;
 
-/*---------------------------------------------------------------------------*/
-/* CONSTANTES PARA FUNCIONES DE LOS PULSADORES USER1 Y USER2 DE LA LDCK */
-/*---------------------------------------------------------------------------*/
-#define PB_TRIM_COUNTER_DELAY_PERIOD    (1000)  // (1000) para 1s
-#define PB_TRIM_COUNTER_AUTOINC_PERIOD  (5)     // (5)    para 5ms (el mínimo es 1)
-#define PB_TRIM_COUNTER_MIN             (440)   // Mínimo valor del contador de Trimmer
-#define PB_TRIM_COUNTER_MAX             (880)   // Máximo valor del contador de Trimmer
 
 /*---------------------------------------------------------------------------*/
 /* EXPERIENCIA 1 */
@@ -49,7 +42,7 @@ typedef float GraphTypeBuff2_t;
 /*---------------------------------------------------------------------------*/
 /* EXPERIENCIA 4 */
 /*---------------------------------------------------------------------------*/
-#define FFT_NPOINTS 1024
+#define FFT_NPOINTS (1024)
 
 /*---------------------------------------------------------------------------*/
 /* EXPERIENCIA 5 */
@@ -63,7 +56,7 @@ typedef float GraphTypeBuff2_t;
  * EXP4: DMA_BUFFSIZE <-- FFT_NPOINTS
  * EXP5: DMA_BUFFSIZE <-- FRAME_SIZE */
 /*---------------------------------------------------------------------------*/
-#define DMA_BUFFSIZE   FFT_NPOINTS
+#define DMA_BUFFSIZE   (FFT_NPOINTS)
 
 /*****************************************************************************/
 #ifdef __cplusplus

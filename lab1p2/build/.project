@@ -28,43 +28,47 @@
 		<link>
 			<name>L138_LCDK_aic3106_init.c</name>
 			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/DSP_AIC3106/L138_LCDK_aic3106_init.c</locationURI>
+			<locationURI>REPO_LAB_DSP/DSP_AIC3106/L138_LCDK_aic3106_init.c</locationURI>
 		</link>
 		<link>
 			<name>L1p2.c</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/sources/L1p2.c</locationURI>
+			<locationURI>copy_PARENT1/sources/L1p2.c</locationURI>
 		</link>
 		<link>
 			<name>dlu_codec_config.h</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/sources/dlu_codec_config.h</locationURI>
+			<locationURI>copy_PARENT1/sources/dlu_codec_config.h</locationURI>
 		</link>
 		<link>
 			<name>dlu_global_defs.h</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/sources/dlu_global_defs.h</locationURI>
+			<locationURI>copy_PARENT1/sources/dlu_global_defs.h</locationURI>
 		</link>
 		<link>
 			<name>dsp_lab_utils.c</name>
 			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/dsp_lab_utils_lib/sources/dsp_lab_utils.c</locationURI>
+			<locationURI>REPO_LAB_DSP/dsp_lab_utils_lib/sources/dsp_lab_utils.c</locationURI>
 		</link>
 		<link>
 			<name>linker_dsp.cmd</name>
 			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/DSP_AIC3106/linker_dsp.cmd</locationURI>
+			<locationURI>REPO_LAB_DSP/DSP_AIC3106/linker_dsp.cmd</locationURI>
 		</link>
 		<link>
 			<name>vectors_intr.asm</name>
 			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/DSP_AIC3106/vectors_intr.asm</locationURI>
+			<locationURI>REPO_LAB_DSP/DSP_AIC3106/vectors_intr.asm</locationURI>
 		</link>
 	</linkedResources>
 	<variableList>
 		<variable>
 			<name>copy_PARENT</name>
 			<value>$%7BREPO_LAB_DSP%7D/lab2p2</value>
+		</variable>
+		<variable>
+			<name>copy_PARENT1</name>
+			<value>$%7BREPO_LAB_DSP%7D/lab1p2</value>
 		</variable>
 	</variableList>
 </projectDescription>
