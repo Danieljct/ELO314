@@ -9,24 +9,6 @@ extern "C" {
 /*****************************************************************************/
 
 /*---------------------------------------------------------------------------*/
-/* BUFFER PARA GRAFICAR */
-/*---------------------------------------------------------------------------*/
-/*
- * Parámetros de buffer de Graficas
- */
-#define DLU_GRAPH_BUFF_SIZE     400
-
-/*
- * Tipo de dato a graficar en Buffer1
- */
-typedef int GraphTypeBuff1_t;
-
-/*
- * Tipo de dato a graficar en Buffer 2
- */
-typedef unsigned int GraphTypeBuff2_t;
-
-/*---------------------------------------------------------------------------*/
 /* EXPERIENCIA 1 */
 /*---------------------------------------------------------------------------*/
 
@@ -48,6 +30,24 @@ typedef unsigned int GraphTypeBuff2_t;
 /*---------------------------------------------------------------------------*/
 #define FRAME_SIZE  (80)
 #define LPC_ORDER   (15)
+
+/*---------------------------------------------------------------------------*/
+/* BUFFER PARA GRAFICAR */
+/*---------------------------------------------------------------------------*/
+/*
+ * Parámetros de buffer de Graficas
+ */
+#define DLU_GRAPH_BUFF_SIZE     FFT_NPOINTS
+
+/*
+ * Tipo de dato a graficar en Buffer1
+ */
+typedef float GraphTypeBuff1_t;
+
+/*
+ * Tipo de dato a graficar en Buffer 2
+ */
+typedef float GraphTypeBuff2_t;
 
 /*---------------------------------------------------------------------------*/
 /* CONFIGURANDO TAMAÑO PARA BUFFERS PING-PONG AL USAR DMA

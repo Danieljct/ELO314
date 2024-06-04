@@ -9,11 +9,12 @@ extern "C" {
 #include "complex.h"
 
 extern void fftRadix2(unsigned int size, Complex *time_input, Complex *freq_output);
+extern void fftRadix2_(unsigned int size, Complex *time_input, Complex *freq_output);
 extern void fftMag(unsigned int size, Complex *fft_freq_vec, float *fft_mag_vec);
 extern void fftRadix2BR(unsigned int size, Complex *time_input, Complex *freq_output);
 extern void initBitReversalTable(unsigned int size, unsigned int *br_table);
 extern void initTweddleFactors(void);
-
+Complex multiplicar(Complex f1, Complex f2);
 /*************************************************************************************************/
 #ifdef __cplusplus
 }

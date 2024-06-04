@@ -30,7 +30,7 @@ extern "C" {
  * LCDK_LINE_INPUT  : Entrada estereo
  * LCDK_MIC_INPUT   : Entrada estereo con polarización de Microfonos
  */
-#define CODEC_INPUT_CFG     LCDK_MIC_INPUT
+#define CODEC_INPUT_CFG     LCDK_LINE_INPUT
 
 /*
  * Ganancia de entrada (PGA) al CODEC:
@@ -53,7 +53,7 @@ extern "C" {
  * ADC_GAIN_48DB
  * ADC_GAIN_51DB
  */
-#define CODEC_ADC_GAIN      ADC_GAIN_15DB
+#define CODEC_ADC_GAIN      ADC_GAIN_0DB
 
 /*
  * Atenuación de salida del CODEC:

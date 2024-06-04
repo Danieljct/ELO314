@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 /***************************************************************************//**
 * \file     fft_radix2.c
 *
@@ -35,7 +38,7 @@
 **      MODULE VARIABLE DEFINITIONS
 ******************************************************************************/
 /*
- * Definición de vector de factores de Tweddle
+ * Definición del vector de factores de Tweddle
  */
 Complex Wn[FFT_NPOINTS];
 
@@ -59,7 +62,73 @@ Complex Wn[FFT_NPOINTS];
 *   \return Void.
 *******************************************************************************/
 extern void fftRadix2(unsigned int fftSize, Complex *inputSignal, Complex *freqOutputVector){
-    // TODO
+    if(fftSize == 2){
+        freqOutputVector[0].real = inputSignal[0].real + inputSignal[1].real;
+        freqOutputVector[0].img = inputSignal[0].img + inputSignal[1].img;
+        freqOutputVector[1].real = inputSignal[0].real - inputSignal[1].real;
+        freqOutputVector[1].img = inputSignal[0].img - inputSignal[1].img;
+
+    }
+    else{
+        Complex W[fftSize/2];
+        int n;
+        for(n = 0; n < fftSize/2; n++){
+            W[n].real = cos(-2*PI*n/((float)fftSize));
+            W[n].img  = sin(-2*PI*n/((float)fftSize));
+        }
+
+        fftRadix2_(fftSize/2, inputSignal, freqOutputVector);
+
+        for(n = 0; n < fftSize/2; n++){
+            Complex multi = multiplicar(freqOutputVector[n+fftSize/2],W[n]);
+            freqOutputVector[n + fftSize/2].real = freqOutputVector[n].real - multi.real;
+            freqOutputVector[n + fftSize/2].img = freqOutputVector[n].img - multi.img;
+            freqOutputVector[n].real = freqOutputVector[n].real + multi.real;
+            freqOutputVector[n].img = freqOutputVector[n].img + multi.img;
+
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+extern void fftRadix2_(unsigned int fftSize, Complex *inputSignal, Complex *freqOutputVector){
+    if(fftSize == 2){
+        freqOutputVector[0].real = inputSignal[0].real + inputSignal[1].real;
+        freqOutputVector[0].img = inputSignal[0].img + inputSignal[1].img;
+        freqOutputVector[1].real = inputSignal[0].real - inputSignal[1].real;
+        freqOutputVector[1].img = inputSignal[0].img - inputSignal[1].img;
+
+    }
+    else{
+    Complex x_par[fftSize/2], x_impar[fftSize/2], W[fftSize/2];
+    int n;
+    for(n = 0; n < fftSize/2; n++){
+        x_par[n] = inputSignal[2*n];
+        x_impar[n] = inputSignal[2*n + 1];
+        W[n].real = cos(-2*PI*n/((float)fftSize)); W[n].img = sin(-2*PI*n/((float)fftSize));
+    }
+
+    Complex X_par[fftSize/2], X_impar[fftSize/2];
+
+    fftRadix2_(fftSize/2, x_par, X_par);
+    fftRadix2_(fftSize/2, x_impar, X_impar);
+    for(n = 0; n < fftSize/2; n++){
+        Complex multi = multiplicar(X_impar[n],W[n]);
+        freqOutputVector[n].real = X_par[n].real + multi.real;
+        freqOutputVector[n].img = X_par[n].img + multi.img;
+        freqOutputVector[n + fftSize/2].real = X_par[n].real - multi.real;
+        freqOutputVector[n + fftSize/2].img = X_par[n].img - multi.img;
+    }}
 }
 
 /***************************************************************************//**
@@ -121,3 +190,10 @@ extern void initTweddleFactors(void)
     }
 }
 
+
+Complex multiplicar(Complex f1, Complex f2){
+    Complex resultado;
+    resultado.real = f1.real*f2.real-f1.img*f2.img;
+    resultado.img = f1.real*f2.img+f1.img*f2.real;
+    return resultado;
+}
