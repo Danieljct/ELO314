@@ -24,7 +24,7 @@ SECTIONS
    {
    		.far
    		.fardata
-   }           > dsp_l2_ram
+   }           > external_ram
    .switch     > dsp_l2_ram
    .stack      > dsp_l2_ram
    .data       > dsp_l2_ram

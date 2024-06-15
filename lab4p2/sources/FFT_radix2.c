@@ -70,17 +70,15 @@ extern void fftRadix2(unsigned int fftSize, Complex *inputSignal, Complex *freqO
 
     }
     else{
-        Complex W[fftSize/2];
+
+
+        //pq lo tenemos con _ xd, habria que llamar a la primera y segunda mitad o no?
+        fftRadix2(fftSize/2, inputSignal, freqOutputVector);
+        fftRadix2(fftSize/2, &(inputSignal[fftSize/2]), &(freqOutputVector[fftSize/2]));
+
         int n;
         for(n = 0; n < fftSize/2; n++){
-            W[n].real = cos(-2*PI*n/((float)fftSize));
-            W[n].img  = sin(-2*PI*n/((float)fftSize));
-        }
-
-        fftRadix2_(fftSize/2, inputSignal, freqOutputVector);
-
-        for(n = 0; n < fftSize/2; n++){
-            Complex multi = multiplicar(freqOutputVector[n+fftSize/2],W[n]);
+            Complex multi = multiplicar(freqOutputVector[n+fftSize/2],Wn[n*FFT_NPOINTS/fftSize]);
             freqOutputVector[n + fftSize/2].real = freqOutputVector[n].real - multi.real;
             freqOutputVector[n + fftSize/2].img = freqOutputVector[n].img - multi.img;
             freqOutputVector[n].real = freqOutputVector[n].real + multi.real;

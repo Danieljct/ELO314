@@ -270,7 +270,7 @@ void processFrame(void)
     {
         /* Copia señal en buffer de entrada de audio a vector de entrada FFT
          * Casteo a flotante para procesar así la FFT. */
-        gInputFFT[bitReverseTable[idxBuffer]].real = (float) codecInputArrayAsInt16L(idxBuffer);//*cheb256[idxBuffer];
+        gInputFFT[bitReverseTable[idxBuffer]].real = (float) codecInputArrayAsInt16L(idxBuffer);//*cheb512[idxBuffer];
         /*-------------------------------------------------------------------*/
         /* Bypass directo del canal izquierdo al canal izquierdo de salida:
          * 'InputBufferL' => 'OutputBufferL' */
