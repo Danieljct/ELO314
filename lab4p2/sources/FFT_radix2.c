@@ -98,7 +98,7 @@ extern void fftRadix2(unsigned int fftSize, Complex *inputSignal, Complex *freqO
 
 
 
-
+// sin bit reversal
 extern void fftRadix2_(unsigned int fftSize, Complex *inputSignal, Complex *freqOutputVector){
     if(fftSize == 2){
         freqOutputVector[0].real = inputSignal[0].real + inputSignal[1].real;
