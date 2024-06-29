@@ -9,7 +9,7 @@ extern "C" {
 
 void levinson_init(short order);
 
-void levinson(float* alpha, float* r, short order);
+void levinson_computeCoeffs(float* arCoeffs, float* rx, short order);
 
 /*************************************************************************************************/
 #ifdef __cplusplus

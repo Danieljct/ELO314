@@ -14,7 +14,7 @@ extern "C" {
 /*
  * Parámetros de buffer de Graficas
  */
-#define DLU_GRAPH_BUFF_SIZE     (80)
+#define DLU_GRAPH_BUFF_SIZE     (160)
 
 /*
  * Tipo de dato a graficar en Buffer1

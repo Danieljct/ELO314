@@ -48,12 +48,7 @@
 		<link>
 			<name>levinson.c</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/sources/levinson.c</locationURI>
-		</link>
-		<link>
-			<name>levinson.h</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/sources/levinson.h</locationURI>
+			<locationURI>REPO_LAB_DSP/lab5p2/sources/levinson.c</locationURI>
 		</link>
 		<link>
 			<name>linker_dsp.cmd</name>

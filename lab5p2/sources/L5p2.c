@@ -1,5 +1,5 @@
 /***************************************************************************//**
-* \file     L5p2_solution.c
+* \file     L5p2.c
 *
 * \brief    Base para el laboratorio L4p2
 *
@@ -17,6 +17,10 @@
 #include "levinson.h"
 #include "functions.h"
 #include "const_arrays.h"
+#include "vowel_a.h"
+#include "stdio.h"
+#include "string.h"
+
 
 /******************************************************************************
 **      MODULE PREPROCESSOR CONSTANTS
@@ -25,7 +29,12 @@
 /******************************************************************************
 **      MODULE MACROS
 ******************************************************************************/
-#define RMS_THRESHOLD       (0.0)
+
+/* Macro para no sobrecargar con tanto indexado de punteros y estructuras */
+#define codecInputArrayAsInt16L(idx)    ( ((dataPairLR_t *)pInputPairBuffer)[idx].leftChannel)
+#define codecInputArrayAsInt16R(idx)    ( ((dataPairLR_t *)pInputPairBuffer)[idx].rightChannel)
+#define codecOutputArrayAsInt16L(idx)   ( ((dataPairLR_t *)pOutputPairBuffer)[idx].leftChannel)
+#define codecOutputArrayAsInt16R(idx)   ( ((dataPairLR_t *)pOutputPairBuffer)[idx].rightChannel)
 
 /******************************************************************************
 **      MODULE DATATYPES
@@ -37,7 +46,27 @@ typedef struct
 {
     int16_t rightChannel;
     int16_t leftChannel;
-} dataPairLR;
+} dataPairLR_t;
+
+typedef enum
+{
+    VU_UNVOICED = 0,
+    VU_VOICED
+}vuSound_e;
+
+typedef enum
+{
+    NOISE_STATIC = 0,
+    NOISE_RAND
+}noiseType_e;
+
+typedef enum
+{
+    SYNTHMODE_ALWAYS_VOICED = 0,
+    SYNTHMODE_ALWAYS_UNVOICED,
+    SYNTHMODE_AUTOMATIC,
+    SYNTHMODE_EXTERNALSOURCE
+}synthMode_e;
 
 /******************************************************************************
 **      MODULE VARIABLE DEFINITIONS
@@ -52,11 +81,6 @@ typedef struct
 extern int16_t *pingIN, *pingOUT, *pongIN, *pongOUT;
 
 /*
- * Flag de indicación que un nuevo frame está listo para procesarse
- */
-volatile int processingBufferIsFull = 0;
-
-/*
  * Puntero a buffer con pares de entradas Izquierdo/Derecho desde DMA
  */
 int16_t *pInputPairBuffer;
@@ -67,68 +91,154 @@ int16_t *pInputPairBuffer;
 int16_t *pOutputPairBuffer;
 
 /*
+ * Flag de indicación que un nuevo frame está listo para procesarse
+ */
+volatile int gProcessingBufferIsFull = 0;
+
+/*
  * Contador de frames procesados
  */
-int framesCounter = 0;
+int gFramesCounter = 0;
 
 /*---------------------------------------------------------------------------*/
 /* DEFINICIÓN DE VARIABLES GLOBALES PARA LPC */
 /*---------------------------------------------------------------------------*/
 
+/*------------------- ARREGLOS SEÑALES DE AUDIO --------------------*/
 /*
  * Buffer de entrada izquierda
  */
-float floatInputBufferL[FRAME_SIZE];
+float gFloatInputBufferL[FRAME_SIZE];
 
 /*
  * Buffer de entrada derecha
  */
-float floatInputBufferR[FRAME_SIZE];
+float gFloatInputBufferR[FRAME_SIZE];
 
 /*
  * Buffer intermedio para enventanar señal del frame entrada
  */
-float inputWindowed[FRAME_SIZE];
-
-/*
- * Valor RMS del frame de entrada
- */
-float inputFrameRms;
-
-/*
- * Valor RMS del frame sintetizado con arFilter
- */
-float synthFrameRms;
+float gInputWindowed[FRAME_SIZE];
 
 /*
  * Buffer de salida sintetizada
  */
-float synthFrame[FRAME_SIZE];
+float gSynthVoiceFrame[FRAME_SIZE];
 
 /*
- * Arreglo con valores de autocorrelación
+ * Arreglo para crear señal de pulsos
  */
-float correlationsArray[LPC_ORDER + 1];
+float gVariableFreqPulsesData[FRAME_SIZE];
 
 /*
- * Parámetros del lpc identificados con levinson()
+ * Periodo en muestras de la señal de pulsos generada
  */
-float lpcParameters[LPC_ORDER+1];
+unsigned int gVariableFreqPulsesPeriod = 80;
 
 /*
- * Buffer para ruido generado dinámicamente
+ * Buffer para ruido generado en tiempo real
  */
-float prandNoise[FRAME_SIZE];
+float gRandNoise[FRAME_SIZE];
 
 /*
  * Índice buffer de ruido blanco para llenarlo
  */
-unsigned int idxPrandNoise;
+unsigned int gIdxPrandNoise;
+
+/*
+ * Fuente de esíimulo para filtro AR
+ */
+float *gpArInputBuffer = NULL;
+
+/*------------------------ ARREGLOS PARA LPC -----------------------*/
+/*
+ * Arreglo con valores de autocorrelación
+ */
+float gCorrelationsArray[LPC_ORDER + 1];
+
+/*
+ * Parámetros del lpc identificados con levinson()
+ */
+float gLpcARcoeffs[LPC_ORDER+1];
+
+/*--------------- VARIABLES PARA CORREGIR AMPLITUD  -----------------*/
+/*
+ * Valor RMS del frame de entrada
+ */
+float gInputFrameRms;
+
+/*
+ * Valor RMS del frame sintetizado con arFilter
+ */
+float gSynthVoiceFrameRms;
 
 /*
  * Factor de corrección de amplitud de señal sintetizada
  */
-float synthAmpFactor;
+float gSynthAmpFactor;
+
+/*
+ * Variable auxiliar para calcular RMS del canal de entada derecho
+ */
+float gAuxInputVoiceRms = 0.0;
+
+/*
+ * Valor RMS del canal de entada derecho
+ */
+float gInputVoiceRms = 0.0;
+
+/*--------------- VARIABLES PARA CLASIFICACIÓN V/U  -----------------*/
+
+/*
+ * Clasificador VU
+ */
+vuSound_e gVUanalysis = VU_VOICED;
+
+/*
+ * Selector de tipo de ruido
+ */
+noiseType_e gNoiseTypeSelector = NOISE_RAND;
+
+/*
+ * Modo de síntesis
+ */
+synthMode_e gSynthMode = SYNTHMODE_AUTOMATIC;
+
+/*
+ * Umbral RMS
+ */
+float gVUrmsThreshold = 0.000;
+
+
+/*--------------- VARIABLES PARA MEJORAS DE CALIDAD -----------------*/
+
+float gMicNoiseFloorRms = 0.000;
+
+/*---------------------------------------------------------------------------*/
+/* DEFINICIÓN DE VARIABLES GLOBALES PARA PRUEBAS Y DEBUGGING */
+/*---------------------------------------------------------------------------*/
+
+/*
+ * LPC parámetros de prueba 'a'
+ */
+float gLpcA[LPC_ORDER+1] = {
+   1.000000000000000,
+  -0.582606819084131,
+   0.192116093188965,
+   0.288607088091191,
+   0.493535676031534,
+   0.009828286172478,
+  -0.190959469422861,
+  -0.015447520819975,
+   0.682408683890808,
+  -0.383201985116514,
+  -0.058132732768475,
+  -0.015920507797531,
+  -0.014047716756587,
+  -0.054775473919274,
+  -0.027721114114396,
+  -0.029782070482511
+};
 
 /******************************************************************************
 **      PRIVATE FUNCTION DECLARATIONS (PROTOTYPES)
@@ -148,7 +258,7 @@ void processFrame(void);
 *   \return Void.
 *******************************************************************************/
 int main(void)
-{
+ {
     /*----------------------------------------------------------------------*/
     // Inicialización del Codec de audio
     L138_initialise_edma(CODEC_FS, CODEC_ADC_GAIN, DAC_ATTEN_0DB, CODEC_INPUT_CFG);
@@ -162,15 +272,33 @@ int main(void)
     DLU_writeLedD6(LED_OFF);
     DLU_writeLedD7(LED_OFF);
     DLU_initTicToc();
+
+
+
+    /*----------------------------------------------------------------------*/
+    /* Inicialización a cero del vector que usa el filtro AR */
+    memset(gSynthVoiceFrame, 0, sizeof(gSynthVoiceFrame));
+
     /*----------------------------------------------------------------------*/
     /* Inicialización de algoritmo de Levinso-Durbin */
     levinson_init(LPC_ORDER);
+
+    /* TESTS
+    float arreglosalida[20];
+    float entrada[] = {0,1, 2, 3, 4, 5 ,6 ,7 ,8, 9, 10,11,12,13,14,15,16,17,18,19};
+    xcorr(arreglosalida, entrada, 20,20);
+    float acoeff[LPC_ORDER+1];
+    levinson_computeCoeffs(acoeff, arreglosalida,LPC_ORDER);
+    float output_filter[20];
+    arFilter(output_filter, acoeff, LPC_ORDER, entrada, 20);
+    */
+
     /*----------------------------------------------------------------------*/
     /* Background: procesamiento tras levantar bandera */
     while(1)
     {
         /* Retención hasta que 'processingBufferIsFull' es alto */
-        while (!processingBufferIsFull);
+        while (!gProcessingBufferIsFull);
 
         /* Una vez llenado el buffer, se procesa en 'processFrame()' */
         DLU_writeLedD4(LED_ON); // Ciclo de trabajo del LED4 indica uso approx de CPU
@@ -192,59 +320,148 @@ int main(void)
 void processFrame(void)
 {
     int idxBuffer;
-    framesCounter+=1;
+    gFramesCounter+=1;
+    gAuxInputVoiceRms = 0.0;
+    /*-------------------------------------------------------------------*/
+    /* PARA VISUALIZAR EN GRÁFICO: presionando el PB2 actualizará los GraphBuff */
+    if ( DLU_readPushButton2 () ){
+        DLU_enableSynchronicSingleCaptureOnAllGraphBuff();
+    }
+
     /*-----------------------------------------------------------------------*/
-    /* Llenado del vector complejo de entrada */
+    /* Copia a arreglo de entrada al proceso de voz */
     for (idxBuffer = 0; idxBuffer < (FRAME_SIZE) ; idxBuffer++)
     {
-        floatInputBufferL[idxBuffer] =
-                AIC_2_FLT( ((dataPairLR *)pInputPairBuffer)[idxBuffer].leftChannel );
+        gFloatInputBufferL[idxBuffer] = AIC_2_FLT( codecInputArrayAsInt16L(idxBuffer) );
+        gFloatInputBufferR[idxBuffer] = AIC_2_FLT( codecInputArrayAsInt16R(idxBuffer) );
+        DLU_appendGraphBuff1(gFloatInputBufferL[idxBuffer]);
 
-        floatInputBufferR[idxBuffer] =
-                AIC_2_FLT( ((dataPairLR *)pInputPairBuffer)[idxBuffer].rightChannel );
     }
 
     /************************************************************************/
-    // PROCESAMIENTO PARA IMPLEMENTAR COMPRESION DE VOZ (en la transmisión)
+    // PROCESAMIENTO PARA IMPLEMENTAR ANÁLISIS DE VOZ
     /*----------------------------------------------------------------------*/
-    /*  Obtener valor RMS (potencia de la señal) */
-    
-    /*----------------------------------------------------------------------*/
-    /*  Enventanamiento */
+    /* 1) Valor RMS de frame de voz */
+    // gInputVoiceRms  =
 
     /*----------------------------------------------------------------------*/
-    /*  Autocorrelación */
+    /* 2) Enventanamiento */
+
 
     /*----------------------------------------------------------------------*/
-    /*  Obtención de coeficientes de la predictor */
-    //levinson();
+    /* 3) Autocorrelación */
+    float rx_total[FRAME_SIZE];
+    xcorr(rx_total, gFloatInputBufferL, FRAME_SIZE,FRAME_SIZE);
+    int i = 0;
+    for(i =0; i < LPC_ORDER+1; i++){
+        gCorrelationsArray[i] = rx_total[i];
+    }
+
 
     /*----------------------------------------------------------------------*/
-    /*  Detección de voz o silencio/siseo */
-    
-    
+    /* 4) Determinación V/U:
+     * Debe actualizar 'gVUanalysis' con  'VU_VOICED' o 'VU_UNVOICED'
+     * Para visualización también:
+     * VOICED enciende el led 7 y
+     * UNVOICED apaga el led 7 */
+
+    //  Cuando es Voiced:
+    //  gVUanalysis = VU_VOICED;
+    //  DLU_writeLedD7(LED_ON);
+
+    //  Cuando es Unvoiced:
+    //  gVUanalysis = VU_UNVOICED;
+    //  DLU_writeLedD7(LED_OFF);
+
     /************************************************************************/
-    // PROCESAMIENTO PARA IMPLEMENTAR SÍNTESIS DE VOZ (en la recepción)
+    // PROCESAMIENTO PARA IMPLEMENTAR SÍNTESIS DE VOZ
     /*----------------------------------------------------------------------*/
-    /* arFilter() con señales de estímulo depediente de voz o silencios */
+    /* 5) Levinson */
+    if ( DLU_readToggleStatePB1() )
+    {
+        // No actualiza los parámetros lpc. Se retienen últimos y se fija RMS
+        gInputFrameRms = 0.15;
+        // Se sobrescribe forzando VOICED
+        gVUanalysis = VU_VOICED;
+    }
+    else
+    {
+        // Se calculan los coeficientes del filtro IIR.
+        // Llame 'levinson_computeCoeffs()'
+
+        levinson_computeCoeffs(gLpcARcoeffs, gCorrelationsArray,LPC_ORDER);
+
+    }
 
     /*----------------------------------------------------------------------*/
-    /*  Calculo del factor de corrección de valor RMS */
-    // synthAmpFactor = ?
-    
+    /* 6) Generar señales de excitación del filtro */
+
+    /* Señal de pulsos ajustables en frecuencia */
+    excitation_generatePulses(gVariableFreqPulsesData, gVariableFreqPulsesPeriod, FRAME_SIZE);
+
+    /* Ruido blanco calculado en tiempo real en arreglo 'gRandNoise' */
+    // gRandNoise
+
+    /*----------------------------------------------------------------------*/
+    /* 7) Selección de señal de excitación */
+    switch(gSynthMode)
+    {
+    case SYNTHMODE_EXTERNALSOURCE:
+        gpArInputBuffer = gFloatInputBufferR;               // AR <-- gFloatInputBufferR
+        DLU_writeLedD5(LED_OFF);
+        break;
+        //------------------------------------------------
+    case SYNTHMODE_AUTOMATIC: // Selección según criterio
+        if ( gVUanalysis == VU_VOICED){
+            gpArInputBuffer = gVariableFreqPulsesData;      // AR <-- gVariableFreqPulsesData
+            DLU_writeLedD5(LED_ON);
+            break;
+        } // No hay brake si es UNVOICED y sí debe pasar
+          // al siguiente caso UNVOICED
+        //------------------------------------------------
+    case SYNTHMODE_ALWAYS_UNVOICED:
+        if ( gNoiseTypeSelector == NOISE_STATIC){
+            gpArInputBuffer = excitationNoise160;           // AR <-- excitationNoise160
+            DLU_writeLedD6(LED_OFF);
+        }
+        if ( gNoiseTypeSelector == NOISE_RAND){
+            gpArInputBuffer = gRandNoise;                  // AR <-- gRandNoise
+            DLU_writeLedD6(LED_ON);
+        }
+        break;
+        //------------------------------------------------
+    case SYNTHMODE_ALWAYS_VOICED: // Siempre U
+        // Si brake por que es también la opción default
+    default:
+        gpArInputBuffer = gVariableFreqPulsesData;          // AR <-- gVariableFreqPulsesData
+        DLU_writeLedD5(LED_ON);
+        //------------------------------------------------
+    }
+
+    /*----------------------------------------------------------------------*/
+    /* 8) Filtrado */
+    arFilter(gSynthVoiceFrame, gLpcARcoeffs, LPC_ORDER, gpArInputBuffer, FRAME_SIZE); // excitation_pulses_100 gVariableFreqPulsesData
+
+    /*----------------------------------------------------------------------*/
+    /* 9) Corrección de amplitud a señal de entrada */
+    // gSynthAmpFactor
+
     /************************************************************************/
+    /*----------------------------------------------------------------------*/
     // Escritura en el buffer de salida para el DMA
     for (idxBuffer = 0; idxBuffer < (FRAME_SIZE) ; idxBuffer++)
     {
-        /* Canal izquierdo */                                       // PUEDE USAR synthAmpFactor AQUÍ
-        ( ((dataPairLR *)pOutputPairBuffer)[idxBuffer].leftChannel ) = FLT_2_AIC(floatInputBufferL[idxBuffer]);
-
+        float auxSample = gSynthAmpFactor*gSynthVoiceFrame[idxBuffer];
+        /* Canal izquierdo */
+        codecOutputArrayAsInt16L(idxBuffer) = FLT_2_AIC(auxSample);
         /* Canal derecho igual a izquierdo */
-        ( ((dataPairLR *)pOutputPairBuffer)[idxBuffer].rightChannel ) = FLT_2_AIC(floatInputBufferL[idxBuffer]);
+        codecOutputArrayAsInt16R(idxBuffer) = FLT_2_AIC(auxSample);
+        /* En caso de actvar la captura en buffer de gráfico */
+        DLU_appendGraphBuff2(auxSample);
     }
     /*----------------------------------------------------------------------*/
     /* Se baja flag de procesamiento*/
-    processingBufferIsFull = 0;
+    gProcessingBufferIsFull = 0;
     return;
 }
 
@@ -280,7 +497,7 @@ interrupt void interrupt4(void) // interrupt service routine
     EVTCLR0 = 0x00000100;
 
     /* Se levanta flag de buffer lleno */
-    processingBufferIsFull = 1;
+    gProcessingBufferIsFull = 1;
 
     return;
 }
