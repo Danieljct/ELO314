@@ -73,9 +73,10 @@ void windowFrame(float *output, float *input, float *window)
 *******************************************************************************/
 void xcorr(float* autocorrOut, float* input, unsigned int length, unsigned int frameSize)
 {
-    memset(autocorrOut, 0,length*sizeof(float));
+
     int j, n;
     for(j = 0; j < length; j++){
+        autocorrOut[j] = 0;
         for (n = 0; n < frameSize - j; n++){
             autocorrOut[j] += (input[n])*(input[n+j]);
         }
@@ -100,7 +101,7 @@ void arFilter(float *output, float *denominatorCoeff, unsigned int p, float *inp
     int k,n;
     for (n = 0; n < frameSize; n++){
         output[n] = input[n];
-        for(k = 1; k < p; k++){
+        for(k = 1; k <= p; k++){
             output[n] -= denominatorCoeff[k]*output[(n+frameSize-k)%frameSize];
         }
     }

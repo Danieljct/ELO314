@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 /***************************************************************************//**
 * \file     L5p2.c
 *
@@ -71,7 +74,8 @@ typedef enum
 /******************************************************************************
 **      MODULE VARIABLE DEFINITIONS
 ******************************************************************************/
-
+float amp_factor = 10;
+float factor_ruido = 10;
 /*---------------------------------------------------------------------------*/
 /* VARIABLES AUXILIARES PARA BUFFERS DE TRANSFERENCIA DMA */
 /*---------------------------------------------------------------------------*/
@@ -123,7 +127,7 @@ float gInputWindowed[FRAME_SIZE];
 /*
  * Buffer de salida sintetizada
  */
-float gSynthVoiceFrame[FRAME_SIZE];
+float gSynthVoiceFrame[FRAME_SIZE]={0};
 
 /*
  * Arreglo para crear señal de pulsos
@@ -159,7 +163,7 @@ float gCorrelationsArray[LPC_ORDER + 1];
 /*
  * Parámetros del lpc identificados con levinson()
  */
-float gLpcARcoeffs[LPC_ORDER+1];
+float gLpcARcoeffs[LPC_ORDER+1] = {0};
 
 /*--------------- VARIABLES PARA CORREGIR AMPLITUD  -----------------*/
 /*
@@ -175,7 +179,7 @@ float gSynthVoiceFrameRms;
 /*
  * Factor de corrección de amplitud de señal sintetizada
  */
-float gSynthAmpFactor;
+float gSynthAmpFactor = 1;
 
 /*
  * Variable auxiliar para calcular RMS del canal de entada derecho
@@ -188,7 +192,23 @@ float gAuxInputVoiceRms = 0.0;
 float gInputVoiceRms = 0.0;
 
 /*--------------- VARIABLES PARA CLASIFICACIÓN V/U  -----------------*/
-
+float rx_total[FRAME_SIZE] = {0};
+float rx_total2[FRAME_SIZE]={  487.3316,
+                               266.0273,
+                               -39.9709,
+                              -242.5073,
+                              -309.7243,
+                              -167.2438,
+                                68.6085,
+                               129.5407,
+                                17.7249,
+                                 1.3680,
+                                -0.7304,
+                                51.8641,
+                               163.8870,
+                               127.9988,
+                               -63.4785
+                              -194.3970};
 /*
  * Clasificador VU
  */
@@ -202,17 +222,17 @@ noiseType_e gNoiseTypeSelector = NOISE_RAND;
 /*
  * Modo de síntesis
  */
-synthMode_e gSynthMode = SYNTHMODE_AUTOMATIC;
+synthMode_e gSynthMode = SYNTHMODE_EXTERNALSOURCE;
 
 /*
  * Umbral RMS
  */
-float gVUrmsThreshold = 0.000;
+float gVUrmsThreshold = 0.004;
 
 
 /*--------------- VARIABLES PARA MEJORAS DE CALIDAD -----------------*/
 
-float gMicNoiseFloorRms = 0.000;
+float gMicNoiseFloorRms = 0.033;
 
 /*---------------------------------------------------------------------------*/
 /* DEFINICIÓN DE VARIABLES GLOBALES PARA PRUEBAS Y DEBUGGING */
@@ -277,22 +297,23 @@ int main(void)
 
     /*----------------------------------------------------------------------*/
     /* Inicialización a cero del vector que usa el filtro AR */
-    memset(gSynthVoiceFrame, 0, sizeof(gSynthVoiceFrame));
+
 
     /*----------------------------------------------------------------------*/
     /* Inicialización de algoritmo de Levinso-Durbin */
     levinson_init(LPC_ORDER);
 
-    /* TESTS
+     //TESTS
+
     float arreglosalida[20];
     float entrada[] = {0,1, 2, 3, 4, 5 ,6 ,7 ,8, 9, 10,11,12,13,14,15,16,17,18,19};
     xcorr(arreglosalida, entrada, 20,20);
     float acoeff[LPC_ORDER+1];
     levinson_computeCoeffs(acoeff, arreglosalida,LPC_ORDER);
-    float output_filter[20];
+    float output_filter[20] = {0};
     arFilter(output_filter, acoeff, LPC_ORDER, entrada, 20);
-    */
 
+    memset(gSynthVoiceFrame, 0, sizeof(gSynthVoiceFrame));
     /*----------------------------------------------------------------------*/
     /* Background: procesamiento tras levantar bandera */
     while(1)
@@ -342,19 +363,25 @@ void processFrame(void)
     // PROCESAMIENTO PARA IMPLEMENTAR ANÁLISIS DE VOZ
     /*----------------------------------------------------------------------*/
     /* 1) Valor RMS de frame de voz */
-    // gInputVoiceRms  =
+    int ir;
+    for(ir = 0; ir < FRAME_SIZE; ir++){
+        gInputVoiceRms  += gFloatInputBufferL[ir]* gFloatInputBufferL[ir];
+    }
+    gInputVoiceRms = sqrt(gInputVoiceRms/FRAME_SIZE);
 
     /*----------------------------------------------------------------------*/
     /* 2) Enventanamiento */
-
-
+    for(ir = 0; ir < FRAME_SIZE; ir++){
+        gFloatInputBufferL[ir] = gFloatInputBufferL[ir]*hammWin160[ir];
+    }
     /*----------------------------------------------------------------------*/
     /* 3) Autocorrelación */
-    float rx_total[FRAME_SIZE];
+
     xcorr(rx_total, gFloatInputBufferL, FRAME_SIZE,FRAME_SIZE);
     int i = 0;
     for(i =0; i < LPC_ORDER+1; i++){
         gCorrelationsArray[i] = rx_total[i];
+       // gCorrelationsArray[i] = rx_total2[i];
     }
 
 
@@ -366,13 +393,17 @@ void processFrame(void)
      * UNVOICED apaga el led 7 */
 
     //  Cuando es Voiced:
-    //  gVUanalysis = VU_VOICED;
-    //  DLU_writeLedD7(LED_ON);
+    gInputVoiceRms -= gMicNoiseFloorRms;
 
+    if (gInputVoiceRms > gVUrmsThreshold){
+      gVUanalysis = VU_VOICED;
+      DLU_writeLedD7(LED_ON);
+    }
+    else{
     //  Cuando es Unvoiced:
-    //  gVUanalysis = VU_UNVOICED;
-    //  DLU_writeLedD7(LED_OFF);
-
+      gVUanalysis = VU_UNVOICED;
+      DLU_writeLedD7(LED_OFF);
+    }
     /************************************************************************/
     // PROCESAMIENTO PARA IMPLEMENTAR SÍNTESIS DE VOZ
     /*----------------------------------------------------------------------*/
@@ -380,7 +411,7 @@ void processFrame(void)
     if ( DLU_readToggleStatePB1() )
     {
         // No actualiza los parámetros lpc. Se retienen últimos y se fija RMS
-        gInputFrameRms = 0.15;
+        gInputFrameRms = gInputVoiceRms;
         // Se sobrescribe forzando VOICED
         gVUanalysis = VU_VOICED;
     }
@@ -400,7 +431,10 @@ void processFrame(void)
     excitation_generatePulses(gVariableFreqPulsesData, gVariableFreqPulsesPeriod, FRAME_SIZE);
 
     /* Ruido blanco calculado en tiempo real en arreglo 'gRandNoise' */
-    // gRandNoise
+    int irand;
+    for(irand = 0; irand < FRAME_SIZE; irand++){
+        gRandNoise[irand] = DLU_fRand()/factor_ruido;
+    }
 
     /*----------------------------------------------------------------------*/
     /* 7) Selección de señal de excitación */
@@ -440,11 +474,12 @@ void processFrame(void)
 
     /*----------------------------------------------------------------------*/
     /* 8) Filtrado */
-    arFilter(gSynthVoiceFrame, gLpcARcoeffs, LPC_ORDER, gpArInputBuffer, FRAME_SIZE); // excitation_pulses_100 gVariableFreqPulsesData
+      arFilter(gSynthVoiceFrame, gLpcARcoeffs, LPC_ORDER, gpArInputBuffer, FRAME_SIZE); // excitation_pulses_100 gVariableFreqPulsesData
+   //  arFilter(gSynthVoiceFrame, gLpcA, LPC_ORDER, gpArInputBuffer, FRAME_SIZE); // excitation_pulses_100 gVariableFreqPulsesData
 
     /*----------------------------------------------------------------------*/
     /* 9) Corrección de amplitud a señal de entrada */
-    // gSynthAmpFactor
+    gSynthAmpFactor = gInputVoiceRms*amp_factor;
 
     /************************************************************************/
     /*----------------------------------------------------------------------*/
